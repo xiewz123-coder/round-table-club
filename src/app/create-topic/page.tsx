@@ -65,7 +65,7 @@ export default function CreateTopicPage() {
   }
 
   // 使用模板
-  const useTemplate = (template: typeof TOPIC_TEMPLATES[0]) => {
+  const applyTemplate = (template: typeof TOPIC_TEMPLATES[0]) => {
     setTitle(template.title)
     setDescription(template.desc)
     setSelectedTags(template.tags)
@@ -139,7 +139,7 @@ export default function CreateTopicPage() {
             {TOPIC_TEMPLATES.map((template, index) => (
               <button
                 key={index}
-                onClick={() => useTemplate(template)}
+                onClick={() => applyTemplate(template)}
                 className="text-left p-4 bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all"
               >
                 <h3 className="font-medium text-gray-900 line-clamp-2 text-sm mb-1">
