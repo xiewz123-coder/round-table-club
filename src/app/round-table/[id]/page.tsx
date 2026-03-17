@@ -1041,15 +1041,13 @@ const MessageCard = ({
   )
 }
 
-// 输入框组件 - 带禁用状态和回复功能
+// 输入框组件 - 带回复功能
 const InputBox = ({
   onSend,
-  disabled,
   replyTo,
   onCancelReply
 }: {
   onSend: (content: string, replyTo?: Message) => void
-  disabled: boolean
   replyTo?: Message | null
   onCancelReply?: () => void
 }) => {
@@ -1057,7 +1055,7 @@ const InputBox = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleSend = () => {
-    if (text.trim() && !disabled) {
+    if (text.trim()) {
       onSend(text.trim(), replyTo || undefined)
       setText('')
       if (textareaRef.current) {
@@ -1080,9 +1078,7 @@ const InputBox = ({
   }
 
   return (
-    <div className={`bg-white border rounded-2xl shadow-lg transition-all ${
-      disabled ? 'border-gray-200 opacity-70' : 'border-gray-200'
-    }`}>
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-lg transition-all">
       {/* 回复提示 */}
       {replyTo && (
         <div className="px-4 pt-3 pb-2 bg-indigo-50/50 border-b border-indigo-100 rounded-t-2xl">
@@ -1112,24 +1108,23 @@ const InputBox = ({
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
               onInput={handleInput}
-              placeholder={disabled ? "等待其他 Agent 发言..." : replyTo ? `回复 ${replyTo.author}...` : "发表你的观点..."}
-              disabled={disabled}
-              className="w-full resize-none bg-gray-50 rounded-xl px-4 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all min-h-[48px] max-h-[120px] disabled:bg-gray-100"
+              placeholder={replyTo ? `回复 ${replyTo.author}...` : "发表你的观点..."}
+              className="w-full resize-none bg-gray-50 rounded-xl px-4 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all min-h-[48px] max-h-[120px]"
               rows={1}
             />
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all disabled:opacity-50" disabled={disabled}>
+            <button className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
               <Paperclip size={20} />
             </button>
-            <button className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all disabled:opacity-50" disabled={disabled}>
+            <button className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
               <Smile size={20} />
             </button>
             <button
               onClick={handleSend}
-              disabled={!text.trim() || disabled}
+              disabled={!text.trim()}
               className={`p-2.5 rounded-xl transition-all ${
-                text.trim() && !disabled
+                text.trim()
                   ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
@@ -1229,7 +1224,7 @@ export default function RoundTablePage() {
   const [typingAgent, setTypingAgent] = useState<string | null>(null)
   const [activeParticipant, setActiveParticipant] = useState<string | null>(null)
   const [speakingParticipant, setSpeakingParticipant] = useState<string | null>(null)
-  const [inputDisabled, setInputDisabled] = useState(false)
+  // 输入框始终可用，不再受 Agent 回复影响
   const [isLoading, setIsLoading] = useState(true)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -1357,23 +1352,23 @@ export default function RoundTablePage() {
     const agentNames = Object.keys(agentProfiles)
 
     const scheduleNextMessage = () => {
-      const delay = randomDelay(15000, 45000) // 15-45秒后下一条
+      const delay = randomDelay(7000, 12000) // 7-12秒后下一条
 
       autoSendTimeoutRef.current = setTimeout(() => {
         const randomAgent = agentNames[Math.floor(Math.random() * agentNames.length)]
         const agent = agentProfiles[randomAgent]
 
-        // 开始打字
+        // 开始打字（不影响用户输入）
         setTypingAgent(randomAgent)
         setActiveParticipant(randomAgent)
         setSpeakingParticipant(randomAgent)
-        setInputDisabled(true)
+        // 不再禁用输入框，用户可以同步输入
 
         // 选择回应
         const response = agent.responses[Math.floor(Math.random() * agent.responses.length)]
 
-        // 模拟打字时间（根据内容长度）
-        const typingTime = Math.max(2000, response.length * 50)
+        // 模拟打字时间（7-12秒范围内的随机时间）
+        const typingTime = randomDelay(7000, 12000)
 
         setTimeout(() => {
           // 发送消息
@@ -1397,7 +1392,6 @@ export default function RoundTablePage() {
           setTypingAgent(null)
           setSpeakingParticipant(null)
           setActiveParticipant(null)
-          setInputDisabled(false)
 
           // 安排下一条
           scheduleNextMessage()
@@ -1442,13 +1436,49 @@ export default function RoundTablePage() {
     setMessages(prev => [...prev, newMessage])
     setCurrentHeat(prev => prev + 0.05)
 
-    // 触发Agent回应（更大概率）
-    setTimeout(() => {
-      const agentProfiles = getAgentProfiles(topicId)
-      const agentNames = Object.keys(agentProfiles)
-      const randomAgent = agentNames[Math.floor(Math.random() * agentNames.length)]
-      setActiveParticipant(randomAgent)
-    }, 1000)
+    // 50% 概率触发 Agent 立即回应
+    if (Math.random() < 0.5) {
+      setTimeout(() => {
+        const agentProfiles = getAgentProfiles(topicId)
+        const agentNames = Object.keys(agentProfiles)
+        const randomAgent = agentNames[Math.floor(Math.random() * agentNames.length)]
+        const agent = agentProfiles[randomAgent]
+
+        // 立即开始打字状态
+        setTypingAgent(randomAgent)
+        setActiveParticipant(randomAgent)
+        setSpeakingParticipant(randomAgent)
+
+        // 选择回应
+        const response = agent.responses[Math.floor(Math.random() * agent.responses.length)]
+
+        // 模拟打字时间（7-12秒）
+        const typingTime = randomDelay(7000, 12000)
+
+        setTimeout(() => {
+          const agentMessage: Message = {
+            id: Date.now().toString(),
+            author: randomAgent,
+            role: agent.role,
+            avatar: agent.avatar,
+            content: response,
+            timestamp: Date.now(),
+            likes: Math.floor(Math.random() * 10),
+            replies: Math.floor(Math.random() * 3),
+            isHighlighted: false,
+            isNew: true
+          }
+
+          setMessages(prev => [...prev, agentMessage])
+          setCurrentHeat(prev => prev + Math.random() * 0.1)
+
+          // 清理状态
+          setTypingAgent(null)
+          setSpeakingParticipant(null)
+          setActiveParticipant(null)
+        }, typingTime)
+      }, 500)
+    }
   }
 
   const handleReply = (message: Message) => {
@@ -1548,12 +1578,11 @@ export default function RoundTablePage() {
             <div className="sticky bottom-4">
               <InputBox
                 onSend={handleSend}
-                disabled={inputDisabled}
                 replyTo={replyTo}
                 onCancelReply={() => setReplyTo(null)}
               />
               <p className="text-center text-xs text-gray-400 mt-2">
-                {inputDisabled ? "其他 Agent 正在发言，请稍候..." : replyTo ? `回复 ${replyTo.author}...` : "按 Enter 发送，Shift + Enter 换行"}
+                {replyTo ? `回复 ${replyTo.author}...` : "按 Enter 发送，Shift + Enter 换行"}
               </p>
             </div>
           </div>
