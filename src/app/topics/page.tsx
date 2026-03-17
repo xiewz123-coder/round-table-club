@@ -138,17 +138,33 @@ const ALL_TOPICS = [
   }
 ]
 
-// 分类数据
-const CATEGORIES = [
-  { name: '全部', count: 156 },
-  { name: '热门', count: 42 },
-  { name: '职场', count: 38 },
-  { name: 'AI', count: 35 },
-  { name: '生活', count: 28 },
-  { name: '哲学', count: 21 },
-  { name: '科幻', count: 18 },
-  { name: '历史', count: 15 }
-]
+// 根据实际数据生成分类统计
+function getCategories(topics: typeof ALL_TOPICS) {
+  // 统计每个标签的出现次数
+  const tagCounts: Record<string, number> = {}
+  topics.forEach(topic => {
+    topic.tags.forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1
+    })
+  })
+
+  // 按数量排序标签
+  const sortedTags = Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6) // 只取前6个
+
+  // 构建分类数组
+  const categories = [
+    { name: '全部', count: topics.length },
+    { name: '热门', count: topics.filter(t => t.heat > 100).length },
+    ...sortedTags.map(([name, count]) => ({ name, count }))
+  ]
+
+  return categories
+}
+
+// 分页配置
+const ITEMS_PER_PAGE = 12
 
 // 排序选项
 const SORT_OPTIONS = [
@@ -161,6 +177,10 @@ export default function TopicsPage() {
   const [activeCategory, setActiveCategory] = useState('全部')
   const [activeSort, setActiveSort] = useState('最热')
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // 获取动态分类（基于实际数据）
+  const categories = getCategories(ALL_TOPICS)
 
   // 过滤话题
   const filteredTopics = ALL_TOPICS.filter(topic => {
@@ -180,6 +200,11 @@ export default function TopicsPage() {
     if (activeSort === '最多参与') return b.participants - a.participants
     return 0
   })
+
+  // 分页逻辑
+  const totalPages = Math.ceil(sortedTopics.length / ITEMS_PER_PAGE)
+  const paginatedTopics = sortedTopics.slice(0, currentPage * ITEMS_PER_PAGE)
+  const hasMore = paginatedTopics.length < sortedTopics.length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -225,7 +250,12 @@ export default function TopicsPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-gray-500">
             <TrendingUp size={18} />
-            <span>共 {sortedTopics.length} 个话题</span>
+            <span>
+              共 {sortedTopics.length} 个话题
+              {sortedTopics.length > ITEMS_PER_PAGE && (
+                <span className="text-gray-400 ml-1">(显示 {paginatedTopics.length} 个)</span>
+              )}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-gray-400" />
@@ -248,10 +278,13 @@ export default function TopicsPage() {
 
         {/* 分类标签 */}
         <div className="flex items-center gap-2 flex-wrap mb-8">
-          {CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <button
               key={cat.name}
-              onClick={() => setActiveCategory(cat.name)}
+              onClick={() => {
+                setActiveCategory(cat.name)
+                setCurrentPage(1) // 切换分类时重置页码
+              }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 activeCategory === cat.name
                   ? 'bg-amber-500 text-white shadow-md'
@@ -268,11 +301,11 @@ export default function TopicsPage() {
 
         {/* 话题列表 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedTopics.map((topic, index) => (
+          {paginatedTopics.map((topic, index) => (
             <Link
               key={topic.id}
               href={`/round-table/${topic.id}`}
-              className="group bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-xl transition-all hover:-translate-y-1"
+              className="group bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-xl transition-all hover:-translate-y-1 animate-fade-in-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               {/* 头部标签 */}
@@ -330,23 +363,36 @@ export default function TopicsPage() {
           ))}
         </div>
 
-        {/* 加载更多 */}
-        {sortedTopics.length > 0 && (
+        {/* 加载更多 - 只在有更多数据时显示 */}
+        {hasMore && (
           <div className="mt-12 text-center">
-            <button className="px-8 py-3 bg-white border border-gray-200 rounded-full text-gray-600 font-medium hover:border-amber-400 hover:text-amber-600 hover:shadow-md transition-all">
-              加载更多话题
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className="px-8 py-3 bg-white border border-gray-200 rounded-full text-gray-600 font-medium hover:border-amber-400 hover:text-amber-600 hover:shadow-md transition-all"
+            >
+              加载更多话题 ({paginatedTopics.length} / {sortedTopics.length})
             </button>
           </div>
         )}
 
         {/* 空状态 */}
-        {sortedTopics.length === 0 && (
-          <div className="text-center py-20">
+        {paginatedTopics.length === 0 && (
+          <div className="text-center py-20 animate-fade-in">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Hash size={24} className="text-gray-400" />
             </div>
             <h3 className="text-gray-900 font-medium mb-2">暂无相关话题</h3>
-            <p className="text-gray-500 text-sm">换个关键词试试看？</p>
+            <p className="text-gray-500 text-sm">换个关键词或分类试试看？</p>
+            <button
+              onClick={() => {
+                setActiveCategory('全部')
+                setSearchQuery('')
+                setCurrentPage(1)
+              }}
+              className="mt-4 px-4 py-2 text-amber-600 hover:text-amber-700 font-medium"
+            >
+              查看全部话题 →
+            </button>
           </div>
         )}
       </main>
