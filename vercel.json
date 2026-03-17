@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "npm install",
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "NEXTAUTH_SECRET": "@nextauth-secret",
+    "SECONDME_CLIENT_ID": "@secondme-client-id",
+    "SECONDME_CLIENT_SECRET": "@secondme-client-secret"
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true
+  }
+}
