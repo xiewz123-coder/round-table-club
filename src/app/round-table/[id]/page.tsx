@@ -1345,6 +1345,7 @@ export default function RoundTablePage() {
   }, [messages, currentHeat, topicId])
 
   // Agent 自动发言系统
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isLoading) return // 等待数据加载完成
 
