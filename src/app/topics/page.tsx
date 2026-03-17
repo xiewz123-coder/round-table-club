@@ -202,7 +202,6 @@ export default function TopicsPage() {
   })
 
   // 分页逻辑
-  const totalPages = Math.ceil(sortedTopics.length / ITEMS_PER_PAGE)
   const paginatedTopics = sortedTopics.slice(0, currentPage * ITEMS_PER_PAGE)
   const hasMore = paginatedTopics.length < sortedTopics.length
 

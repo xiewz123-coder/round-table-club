@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Trophy,
   MessageSquare,
-  Users,
   Heart,
   Clock,
   Sparkles,
@@ -98,7 +97,6 @@ const ACHIEVEMENTS = [
 export default function ProfilePage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'overview' | 'agents' | 'records' | 'achievements'>('overview')
-  const [isEditing, setIsEditing] = useState(false)
 
   const handleLogout = () => {
     if (confirm('确定要退出登录吗？')) {

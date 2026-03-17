@@ -717,7 +717,7 @@ const ShareButton = ({ topic }: { topic: TopicData }) => {
         setShowToast(true)
         setTimeout(() => setShowToast(false), 2000)
       }
-    } catch (err) {
+    } catch {
       // 用户取消分享，不做处理
     }
   }
