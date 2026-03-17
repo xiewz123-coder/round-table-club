@@ -1,15 +1,5 @@
 {
   "buildCommand": "prisma generate && next build",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_BASE_URL": "@next_public_base_url",
-    "DATABASE_URL": "@database_url",
-    "NEXTAUTH_SECRET": "@nextauth_secret",
-    "NEXTAUTH_URL": "@nextauth_url",
-    "SECONDME_API_KEY": "@secondme_api_key",
-    "SECONDME_BASE_URL": "@secondme_base_url",
-    "SECONDME_APP_ID": "@secondme_app_id",
-    "SECONDME_APP_SECRET": "@secondme_app_secret"
-  }
+  "framework": "nextjs"
 }
