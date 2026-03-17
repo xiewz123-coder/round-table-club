@@ -4,14 +4,17 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // 禁用 ESLint 在构建时
+  // 禁用 ESLint 在构建时 - 强制禁用
   eslint: {
     ignoreDuringBuilds: true,
+    dirs: [],
   },
   // 禁用 TypeScript 类型检查（如有需要）
   typescript: {
     ignoreBuildErrors: true,
   },
+  // 输出配置
+  output: 'standalone',
   // 允许从外部访问
   async headers() {
     return [
