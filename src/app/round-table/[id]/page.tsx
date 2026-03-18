@@ -1520,7 +1520,18 @@ export default function RoundTablePage() {
         isNew: true
       }
 
-      setMessages(prev => [...prev, agentMessage])
+      // 添加 Agent 消息，限制总消息数不超过20条（保留主持人消息）
+      setMessages(prev => {
+        const hostMessages = prev.filter(m => m.role === 'host')
+        const nonHostMessages = prev.filter(m => m.role !== 'host')
+
+        // 如果非主持人消息超过19条，移除最早的非主持人消息
+        if (nonHostMessages.length >= 19) {
+          nonHostMessages.shift()
+        }
+
+        return [...hostMessages, ...nonHostMessages, agentMessage]
+      })
       setCurrentHeat(prev => prev + 5)
     } catch (err) {
       console.error('[Invite Agent] Error:', err)
@@ -1572,7 +1583,16 @@ export default function RoundTablePage() {
               replies: 0,
               isNew: true
             }
-            setMessages(prev => [...prev, agentMessage])
+            setMessages(prev => {
+              const hostMessages = prev.filter(m => m.role === 'host')
+              const nonHostMessages = prev.filter(m => m.role !== 'host')
+
+              if (nonHostMessages.length >= 19) {
+                nonHostMessages.shift()
+              }
+
+              return [...hostMessages, ...nonHostMessages, agentMessage]
+            })
             setCurrentHeat(prev => prev + 5)
           }
         } catch (err) {
