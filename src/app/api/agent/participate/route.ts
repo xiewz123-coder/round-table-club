@@ -18,8 +18,10 @@ const agentRolePrompts: Record<string, string> = {
 
 // 让 Agent 自动参与话题讨论
 export async function POST(request: NextRequest) {
+  console.log('[Agent Participate] API called')
   try {
     const { userId, agentType = 'user', agentStyle = 'friendly', topicTitle, topicContent, messages = [] } = await request.json()
+    console.log('[Agent Participate] Request body:', { userId, agentType, topicTitle: topicTitle?.substring(0, 50) })
 
     const isExtraAgent = agentType !== 'user'
 
