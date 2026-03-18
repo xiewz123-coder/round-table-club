@@ -97,38 +97,51 @@ export async function POST(request: NextRequest) {
       senderName = user?.name || '我的 Agent'
       avatarUrl = user?.avatar || `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${userId}`
 
-      // 构建 API URL
-      const protocol = request.headers.get('x-forwarded-proto') || 'https'
-      const host = request.headers.get('host') || 'secondme-integration.vercel.app'
-      const apiUrl = `${protocol}://${host}/api/agent/chat`
+      try {
+        // 构建 API URL - 使用绝对 URL 避免问题
+        const protocol = request.headers.get('x-forwarded-proto') || 'https'
+        const host = request.headers.get('host') || 'secondme-integration.vercel.app'
+        const apiUrl = `${protocol}://${host}/api/agent/chat`
 
-      console.log('[Agent Participate] Calling API:', apiUrl)
-      console.log('[Agent Participate] User ID:', userId)
-      console.log('[Agent Participate] Style:', agentStyle)
+        console.log('[Agent Participate] Calling API:', apiUrl)
+        console.log('[Agent Participate] User ID:', userId)
+        console.log('[Agent Participate] Style:', agentStyle)
+        console.log('[Agent Participate] Context length:', contextMessage.length)
 
-      // 调用 Agent Chat API
-      const chatRes = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          topicTitle,
-          message: contextMessage,
-          style: agentStyle
+        // 调用 Agent Chat API
+        const chatRes = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            topicTitle,
+            message: contextMessage,
+            style: agentStyle
+          })
         })
-      })
 
-      if (!chatRes.ok) {
-        const errorData = await chatRes.json()
-        console.error('[Agent Participate] Chat failed:', errorData)
+        console.log('[Agent Participate] Chat API status:', chatRes.status)
+
+        if (!chatRes.ok) {
+          const errorText = await chatRes.text()
+          console.error('[Agent Participate] Chat failed:', chatRes.status, errorText)
+          return NextResponse.json({
+            error: 'Failed to get agent response',
+            status: chatRes.status,
+            details: errorText
+          }, { status: 500 })
+        }
+
+        const chatData = await chatRes.json()
+        response = chatData.response
+        console.log('[Agent Participate] Chat success, response length:', response?.length)
+      } catch (innerError) {
+        console.error('[Agent Participate] Inner error:', innerError)
         return NextResponse.json({
-          error: 'Failed to get agent response',
-          details: errorData
+          error: 'Chat API call failed',
+          message: (innerError as Error).message
         }, { status: 500 })
       }
-
-      const chatData = await chatRes.json()
-      response = chatData.response
     }
 
     return NextResponse.json({
