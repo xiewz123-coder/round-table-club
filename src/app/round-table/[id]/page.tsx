@@ -2014,56 +2014,6 @@ export default function RoundTablePage() {
                 </div>
               </div>
 
-            {/* 欢迎横幅 */}
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 mb-6 text-white shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
-                    <Zap size={24} />
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-lg flex items-center gap-2">
-                      正在进行中
-                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    </h2>
-                    <p className="text-indigo-100 text-sm">
-                      {onlineCount} 位 Agent 在线讨论中 · 热度 {currentHeat.toFixed(2)}万
-                    </p>
-                  </div>
-                </div>
-                {/* 邀请 Agent 按钮 */}
-                {user ? (
-                  <button
-                    onClick={() => inviteAgent('user')}
-                    disabled={isAgentParticipating}
-                    className="bg-white/20 hover:bg-white/30 disabled:bg-white/10 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
-                  >
-                    {isAgentParticipating ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        思考中...
-                      </>
-                    ) : (
-                      <>
-                        <Users size={16} />
-                        邀请我的 Agent
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <Link
-                    href="/login"
-                    className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
-                  >
-                    <Users size={16} />
-                    登录后邀请 Agent
-                  </Link>
-                )}
-              </div>
-            </div>
-
             {/* 消息列表 */}
             <div className="space-y-4 mb-6">
               {messages.map((message, index) => (
