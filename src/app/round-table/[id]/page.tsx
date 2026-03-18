@@ -19,7 +19,10 @@ import {
   Plus,
   Zap,
   Activity,
-  X
+  X,
+  ChevronDown,
+  User,
+  LogOut
 } from 'lucide-react'
 
 interface Message {
@@ -42,6 +45,13 @@ interface Participant {
   avatar: string
   status: 'online' | 'offline'
   isSpeaking?: boolean
+}
+
+interface UserInfo {
+  id: string
+  name: string
+  email: string
+  avatar?: string
 }
 
 interface TopicData {
@@ -852,18 +862,104 @@ const ParticipantList = ({
 }) => {
   const onlineCount = participants.filter(p => p.status === 'online').length
 
+  // 分离主持人和其他参与者
+  const hostParticipants = participants.filter(p => p.role === 'host')
+  const guestParticipants = participants.filter(p => p.role !== 'host')
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700">当前参与者</h3>
-        <span className="text-xs text-green-600 flex items-center gap-1">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          {onlineCount} 人在线
-        </span>
+      {/* 固定标题 */}
+      <div className="sticky top-0 bg-white z-10 pb-2 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">当前参与者</h3>
+          <span className="text-xs text-green-600 flex items-center gap-1">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            {onlineCount} 人在线
+          </span>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {participants.map((p, index) => {
+      {/* 主持人区域 - 固定 */}
+      {hostParticipants.length > 0 && (
+        <div className="sticky top-10 bg-white z-10 pb-2">
+          <div className="text-xs font-medium text-amber-600 mb-2 px-1">主持人</div>
+          <div className="space-y-2">
+            {hostParticipants.map((p, index) => {
+              const isActive = activeParticipant === p.name
+              const isSpeaking = speakingParticipant === p.name
+
+              return (
+                <div
+                  key={p.id}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
+                    isActive ? 'bg-indigo-50 border border-indigo-200 shadow-sm' :
+                    isSpeaking ? 'bg-amber-50 border border-amber-200' : 'hover:bg-gray-50'
+                  }`}
+                  style={{
+                    animationDelay: `${index * 50}ms`,
+                    transform: isSpeaking ? 'scale(1.02)' : 'scale(1)'
+                  }}
+                >
+                  <div className="relative">
+                    <img
+                      src={p.avatar}
+                      alt={p.name}
+                      className={`w-10 h-10 rounded-full border-2 transition-all ${
+                        isSpeaking ? 'border-amber-400 animate-pulse' :
+                        isActive ? 'border-indigo-400' : 'border-transparent'
+                      }`}
+                    />
+                    {p.status === 'online' && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"
+                        style={{ animationDuration: '2s' }}
+                      />
+                    )}
+                    {p.role === 'host' && (
+                      <span className="absolute -top-1 -right-1 bg-amber-500 text-white p-0.5 rounded-full">
+                        <Crown size={10} />
+                      </span>
+                    )}
+                    {isSpeaking && (
+                      <span className="absolute -bottom-1 -left-1 bg-indigo-500 text-white p-0.5 rounded-full">
+                        <Zap size={8} />
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-medium truncate ${
+                        isSpeaking ? 'text-amber-900' : isActive ? 'text-indigo-900' : 'text-gray-700'
+                      }`}>
+                        {p.name}
+                      </span>
+                      {isSpeaking && (
+                        <span className="flex gap-0.5">
+                          <span className="w-1 h-3 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1 h-3 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1 h-3 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${roleLabels[p.role].color}`}>
+                      {roleLabels[p.role].text}
+                    </span>
+                  </div>
+                  {isActive && !isSpeaking && (
+                    <span className="text-xs text-indigo-500">思考中...</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 其他参与者 */}
+      {guestParticipants.length > 0 && (
+        <>
+          <div className="text-xs font-medium text-gray-500 mb-2 px-1">Agent 参与者</div>
+          <div className="space-y-2 max-h-[calc(100vh-20rem)] overflow-y-auto">
+            {guestParticipants.map((p, index) => {
           const isActive = activeParticipant === p.name
           const isSpeaking = speakingParticipant === p.name
 
@@ -929,7 +1025,9 @@ const ParticipantList = ({
             </div>
           )
         })}
-      </div>
+          </div>
+        </>
+      )}
 
       {/* 邀请按钮 */}
       <button className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all hover:shadow-sm">
@@ -1139,6 +1237,94 @@ const InputBox = ({
 }
 
 // 顶部导航组件
+// 用户菜单组件
+const UserMenu = () => {
+  const [user, setUser] = useState<UserInfo | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // 获取当前用户
+    fetch('/api/user/info')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => data && setUser(data.data))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    // 点击外部关闭菜单
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      window.location.href = '/'
+    } catch (err) {
+      console.error('Logout failed:', err)
+    }
+  }
+
+  if (!user) {
+    return (
+      <Link
+        href="/login"
+        className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors text-sm font-medium"
+      >
+        <Users size={16} />
+        登录
+      </Link>
+    )
+  }
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-gray-100 transition-colors"
+      >
+        <img
+          src={user.avatar || `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${user.id}`}
+          alt={user.name}
+          className="w-8 h-8 rounded-full border border-gray-200"
+        />
+        <span className="text-sm font-medium text-gray-700 hidden sm:block">{user.name}</span>
+        <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 animate-in fade-in slide-in-from-top-2">
+          <div className="px-4 py-2 border-b border-gray-100">
+            <p className="text-sm font-medium text-gray-900">{user.name}</p>
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          </div>
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            <User size={16} />
+            个人资料
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={16} />
+            退出登录
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const Header = ({ topic }: { topic: TopicData }) => (
   <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200">
     <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -1154,9 +1340,7 @@ const Header = ({ topic }: { topic: TopicData }) => (
 
       <div className="flex items-center gap-2">
         <ShareButton topic={topic} />
-        <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
-          <Settings size={20} />
-        </button>
+        <UserMenu />
       </div>
     </div>
   </header>
@@ -1178,7 +1362,7 @@ const generateMissedMessages = (topicId: string, lastActiveTime: number, current
 
   // 每20-40秒生成一条消息
   while (currentTimePointer < currentTime) {
-    const nextMessageTime = currentTimePointer + randomDelay(20000, 40000)
+    const nextMessageTime = currentTimePointer + randomDelay(25000, 35000)
     if (nextMessageTime > currentTime) break
 
     const randomAgent = agentNames[Math.floor(Math.random() * agentNames.length)]
@@ -1227,93 +1411,334 @@ export default function RoundTablePage() {
   // 输入框始终可用，不再受 Agent 回复影响
   const [isLoading, setIsLoading] = useState(true)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
+  const [user, setUser] = useState<UserInfo | null>(null)
+  const [isAgentParticipating, setIsAgentParticipating] = useState(false)
+  // 可拖拽浮动按钮位置和状态
+  const [floatBtnPos, setFloatBtnPos] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartPos = useRef({ x: 0, y: 0 })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const autoSendTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Agent 设置
+  const [agentStyle, setAgentStyle] = useState<'professional' | 'humorous' | 'concise' | 'friendly'>('friendly')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [, setAgentType] = useState<'user' | 'critic' | 'humorist' | 'sage'>('user')
+  const [autoParticipate, setAutoParticipate] = useState(false)
+  const [showAgentPanel, setShowAgentPanel] = useState(false)
+  const autoParticipateRef = useRef<NodeJS.Timeout | null>(null)
+
   const onlineCount = participants.filter(p => p.status === 'online').length
+
+  // 获取当前登录用户
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/user/info')
+        if (res.ok) {
+          const data = await res.json()
+          console.log('[RoundTable] User fetched:', data.data)
+          setUser(data.data)
+        } else {
+          console.log('[RoundTable] User not logged in, status:', res.status)
+        }
+      } catch (err) {
+        console.error('[RoundTable] Failed to fetch user:', err)
+      }
+    }
+    fetchUser()
+  }, [])
+
+  // 多 Agent 配置
+  const extraAgents = [
+    { id: 'critic', name: '批判者 Agent', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=critic', style: 'professional' as const },
+    { id: 'humorist', name: '幽默家 Agent', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=humorist', style: 'humorous' as const },
+    { id: 'sage', name: '智者 Agent', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sage', style: 'concise' as const },
+  ]
+
+  // 邀请 Agent 参与讨论
+  const inviteAgent = async (agentType: 'user' | 'critic' | 'humorist' | 'sage' = 'user', customStyle?: string) => {
+    if (isAgentParticipating) return
+
+    const isExtraAgent = agentType !== 'user'
+    const agentConfig = isExtraAgent
+      ? extraAgents.find(a => a.id === agentType)
+      : null
+
+    const agentName = isExtraAgent
+      ? agentConfig?.name
+      : (user?.name || '我的 Agent')
+
+    if (!isExtraAgent && !user) {
+      alert('请先登录以邀请您的 Agent')
+      return
+    }
+
+    setIsAgentParticipating(true)
+    setTypingAgent(agentName || 'Agent')
+
+    try {
+      const res = await fetch('/api/agent/participate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: isExtraAgent ? 'system' : user?.id,
+          agentType,
+          agentStyle: customStyle || agentConfig?.style || agentStyle,
+          topicId: topicId,
+          topicTitle: topic?.title || '',
+          topicContent: topic?.subtitle || '',
+          messages: messages.map(m => ({
+            sender: m.author,
+            content: m.content,
+            isAgent: m.role !== 'audience'
+          }))
+        })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[Invite Agent] API error:', errorData)
+        const mainError = errorData.error || errorData.message || `HTTP ${res.status}`
+        const details = errorData.details ? `\n\n详细信息: ${JSON.stringify(errorData.details, null, 2)}` : ''
+        throw new Error(`${mainError}${details}`)
+      }
+
+      const data = await res.json()
+
+      // 添加 Agent 的消息到列表
+      const agentMessage: Message = {
+        id: `agent-${Date.now()}`,
+        author: data.message.sender || agentName || 'Agent',
+        role: 'guest',
+        avatar: data.message.avatar || agentConfig?.avatar || `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${user?.id || agentType}`,
+        content: data.message.content,
+        timestamp: Date.now(),
+        likes: 0,
+        replies: 0,
+        isNew: true
+      }
+
+      setMessages(prev => [...prev, agentMessage])
+      setCurrentHeat(prev => prev + 5)
+    } catch (err) {
+      console.error('[Invite Agent] Error:', err)
+      alert(`Agent 参与失败: ${(err as Error).message}`)
+    } finally {
+      setTypingAgent(null)
+      setIsAgentParticipating(false)
+    }
+  }
+
+  // 自动参与定时器
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const inviteUserAgent = () => {
+      if (!user || isAgentParticipating) return
+      // 调用 inviteAgent 逻辑
+      const doInvite = async () => {
+        const agentName = user.name || '我的 Agent'
+        setIsAgentParticipating(true)
+        setTypingAgent(agentName)
+        try {
+          const res = await fetch('/api/agent/participate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              agentType: 'user',
+              agentStyle: agentStyle,
+              topicId: topicId,
+              topicTitle: topic?.title || '',
+              topicContent: topic?.subtitle || '',
+              messages: messages.map(m => ({
+                sender: m.author,
+                content: m.content,
+                isAgent: m.role !== 'audience'
+              }))
+            })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const agentMessage: Message = {
+              id: `agent-${Date.now()}`,
+              author: data.message.sender || agentName,
+              role: 'guest',
+              avatar: data.message.avatar || `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${user.id}`,
+              content: data.message.content,
+              timestamp: Date.now(),
+              likes: 0,
+              replies: 0,
+              isNew: true
+            }
+            setMessages(prev => [...prev, agentMessage])
+            setCurrentHeat(prev => prev + 5)
+          }
+        } catch (err) {
+          console.error('[Auto Invite] Error:', err)
+        } finally {
+          setTypingAgent(null)
+          setIsAgentParticipating(false)
+        }
+      }
+      doInvite()
+    }
+
+    if (autoParticipate && user && !isAgentParticipating) {
+      autoParticipateRef.current = setInterval(() => {
+        if (Math.random() < 0.3) {
+          inviteUserAgent()
+        }
+      }, 5 * 60 * 1000)
+    }
+
+    return () => {
+      if (autoParticipateRef.current) {
+        clearInterval(autoParticipateRef.current)
+      }
+    }
+  }, [autoParticipate, user, isAgentParticipating, agentStyle, topicId, topic, messages])
+
+  // 可拖拽浮动按钮事件处理
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true)
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    dragStartPos.current = {
+      x: clientX - floatBtnPos.x,
+      y: clientY - floatBtnPos.y
+    }
+  }
+
+  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDragging) return
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    setFloatBtnPos({
+      x: clientX - dragStartPos.current.x,
+      y: clientY - dragStartPos.current.y
+    })
+  }, [isDragging])
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  // 添加全局拖拽事件监听
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove)
+      window.addEventListener('mouseup', handleDragEnd)
+      window.addEventListener('touchmove', handleDragMove)
+      window.addEventListener('touchend', handleDragEnd)
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove)
+        window.removeEventListener('mouseup', handleDragEnd)
+        window.removeEventListener('touchmove', handleDragMove)
+        window.removeEventListener('touchend', handleDragEnd)
+      }
+    }
+  }, [isDragging, handleDragMove, handleDragEnd])
 
   // 初始化数据 - 从 localStorage 读取或创建默认
   useEffect(() => {
-    // 检查版本号，如果不匹配则清除所有缓存
-    const savedVersion = localStorage.getItem(VERSION_KEY)
-    if (savedVersion !== DATA_VERSION) {
-      // 清除所有 round-table 相关的缓存
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('round-table-')) {
-          localStorage.removeItem(key)
-        }
-      })
-      localStorage.setItem(VERSION_KEY, DATA_VERSION)
-    }
+    try {
+      // 检查版本号，如果不匹配则清除所有缓存
+      const savedVersion = localStorage.getItem(VERSION_KEY)
+      if (savedVersion !== DATA_VERSION) {
+        // 清除所有 round-table 相关的缓存
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('round-table-')) {
+            localStorage.removeItem(key)
+          }
+        })
+        localStorage.setItem(VERSION_KEY, DATA_VERSION)
+      }
 
-    const topicData = TOPIC_DATA[topicId] || TOPIC_DATA['1']
-    setTopic(topicData)
+      const topicData = TOPIC_DATA[topicId] || TOPIC_DATA['1']
+      setTopic(topicData)
 
-    // 尝试从 localStorage 读取消息
-    const messagesKey = getStorageKey(topicId, 'messages')
-    const heatKey = getStorageKey(topicId, 'heat')
-    const lastActiveKey = getStorageKey(topicId, 'last-active')
-    const savedMessages = localStorage.getItem(messagesKey)
-    const savedHeat = localStorage.getItem(heatKey)
-    const lastActive = localStorage.getItem(lastActiveKey)
+      // 尝试从 localStorage 读取消息
+      const messagesKey = getStorageKey(topicId, 'messages')
+      const heatKey = getStorageKey(topicId, 'heat')
+      const lastActiveKey = getStorageKey(topicId, 'last-active')
+      const savedMessages = localStorage.getItem(messagesKey)
+      const savedHeat = localStorage.getItem(heatKey)
+      const lastActive = localStorage.getItem(lastActiveKey)
 
-    const now = Date.now()
+      const now = Date.now()
 
-    if (savedMessages) {
-      // 有历史消息，恢复
-      const parsedMessages: Message[] = JSON.parse(savedMessages)
+      if (savedMessages) {
+        // 有历史消息，恢复
+        const parsedMessages: Message[] = JSON.parse(savedMessages)
 
-      // 如果有上次活跃时间，生成错过的消息
-      if (lastActive) {
-        const lastActiveTime = parseInt(lastActive)
-        const timeDiff = now - lastActiveTime
+        // 如果有上次活跃时间，生成错过的消息
+        if (lastActive) {
+          const lastActiveTime = parseInt(lastActive)
+          const timeDiff = now - lastActiveTime
 
-        if (timeDiff > 30000) { // 离开超过30秒
-          const missedMessages = generateMissedMessages(topicId, lastActiveTime, now)
-          if (missedMessages.length > 0) {
-            setMessages([...parsedMessages, ...missedMessages])
+          if (timeDiff > 30000) { // 离开超过30秒
+            const missedMessages = generateMissedMessages(topicId, lastActiveTime, now)
+            if (missedMessages.length > 0) {
+              setMessages([...parsedMessages, ...missedMessages])
+            } else {
+              setMessages(parsedMessages)
+            }
           } else {
             setMessages(parsedMessages)
           }
         } else {
           setMessages(parsedMessages)
         }
-      } else {
-        setMessages(parsedMessages)
-      }
 
-      // 恢复热度
-      if (savedHeat) {
-        const baseHeat = parseFloat(savedHeat)
-        // 根据离开时间增加热度
-        if (lastActive) {
-          const timeDiff = now - parseInt(lastActive)
-          const heatIncrease = (timeDiff / 2000) * 0.01 // 模拟热度增长
-          setCurrentHeat(baseHeat + heatIncrease)
+        // 恢复热度
+        if (savedHeat) {
+          const baseHeat = parseFloat(savedHeat)
+          // 根据离开时间增加热度
+          if (lastActive) {
+            const timeDiff = now - parseInt(lastActive)
+            const heatIncrease = (timeDiff / 2000) * 0.01 // 模拟热度增长
+            setCurrentHeat(baseHeat + heatIncrease)
+          } else {
+            setCurrentHeat(baseHeat)
+          }
         } else {
-          setCurrentHeat(baseHeat)
+          setCurrentHeat(topicData.heat)
         }
       } else {
+        // 首次访问，创建话题特定的默认消息
         setCurrentHeat(topicData.heat)
+        setMessages(generateInitialMessages(topicId, topicData.title, now))
       }
-    } else {
-      // 首次访问，创建话题特定的默认消息
+    } catch (error) {
+      // localStorage 访问失败时使用默认数据
+      console.error('Failed to load from localStorage:', error)
+      const topicData = TOPIC_DATA[topicId] || TOPIC_DATA['1']
+      setTopic(topicData)
       setCurrentHeat(topicData.heat)
-      setMessages(generateInitialMessages(topicId, topicData.title, now))
+      setMessages(generateInitialMessages(topicId, topicData.title, Date.now()))
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
 
     // 记录当前活跃时间
     const handleBeforeUnload = () => {
-      localStorage.setItem(lastActiveKey, Date.now().toString())
+      try {
+        localStorage.setItem(getStorageKey(topicId, 'last-active'), Date.now().toString())
+      } catch {
+        // ignore localStorage errors
+      }
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
-      localStorage.setItem(lastActiveKey, Date.now().toString())
+      try {
+        localStorage.setItem(getStorageKey(topicId, 'last-active'), Date.now().toString())
+      } catch {
+        // ignore localStorage errors
+      }
     }
   }, [topicId])
 
@@ -1337,10 +1762,14 @@ export default function RoundTablePage() {
   // 保存消息和热度到 localStorage
   useEffect(() => {
     if (messages.length > 0 && topicId) {
-      const messagesKey = getStorageKey(topicId, 'messages')
-      const heatKey = getStorageKey(topicId, 'heat')
-      localStorage.setItem(messagesKey, JSON.stringify(messages))
-      localStorage.setItem(heatKey, currentHeat.toString())
+      try {
+        const messagesKey = getStorageKey(topicId, 'messages')
+        const heatKey = getStorageKey(topicId, 'heat')
+        localStorage.setItem(messagesKey, JSON.stringify(messages))
+        localStorage.setItem(heatKey, currentHeat.toString())
+      } catch {
+        // ignore localStorage errors
+      }
     }
   }, [messages, currentHeat, topicId])
 
@@ -1353,7 +1782,7 @@ export default function RoundTablePage() {
     const agentNames = Object.keys(agentProfiles)
 
     const scheduleNextMessage = () => {
-      const delay = randomDelay(7000, 12000) // 7-12秒后下一条
+      const delay = randomDelay(14000, 20000) // 14-20秒后下一条
 
       autoSendTimeoutRef.current = setTimeout(() => {
         const randomAgent = agentNames[Math.floor(Math.random() * agentNames.length)]
@@ -1368,8 +1797,8 @@ export default function RoundTablePage() {
         // 选择回应
         const response = agent.responses[Math.floor(Math.random() * agent.responses.length)]
 
-        // 模拟打字时间（7-12秒范围内的随机时间）
-        const typingTime = randomDelay(7000, 12000)
+        // 模拟打字时间（14-20秒范围内的随机时间）
+        const typingTime = randomDelay(14000, 20000)
 
         setTimeout(() => {
           // 发送消息
@@ -1454,7 +1883,7 @@ export default function RoundTablePage() {
         const response = agent.responses[Math.floor(Math.random() * agent.responses.length)]
 
         // 模拟打字时间（7-12秒）
-        const typingTime = randomDelay(7000, 12000)
+        const typingTime = randomDelay(25000, 35000)
 
         setTimeout(() => {
           const agentMessage: Message = {
@@ -1518,40 +1947,120 @@ export default function RoundTablePage() {
         {/* 中间主内容 - 讨论流 */}
         <main className="flex-1 min-w-0" ref={messagesContainerRef}>
           <div className="max-w-2xl mx-auto px-4 py-6">
-            {/* 话题标题（移动端显示） */}
-            <div className="lg:hidden mb-6">
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                <h1 className="font-bold text-gray-900">{topic.title}</h1>
-                <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Users size={14} />
-                    {topic.participantCount} 人参与
-                  </span>
-                  <span className="flex items-center gap-1 text-orange-500">
-                    <Flame size={14} className="animate-pulse" />
-                    {currentHeat.toFixed(1)}万 热度
-                  </span>
+              {/* 话题标题（移动端显示） */}
+              <div className="lg:hidden mb-4">
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <h1 className="font-bold text-gray-900">{topic.title}</h1>
+                  <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Users size={14} />
+                      {topic.participantCount} 人参与
+                    </span>
+                    <span className="flex items-center gap-1 text-orange-500">
+                      <Flame size={14} className="animate-pulse" />
+                      {currentHeat.toFixed(1)}万 热度
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+
+              {/* 欢迎横幅 */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 mb-4 text-white shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
+                      <Zap size={24} />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-lg flex items-center gap-2">
+                        正在进行中
+                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      </h2>
+                      <p className="text-indigo-100 text-sm">
+                        {onlineCount} 位 Agent 在线讨论中 · 热度 {currentHeat.toFixed(2)}万
+                      </p>
+                    </div>
+                  </div>
+                  {/* 邀请 Agent 按钮 */}
+                  {user ? (
+                    <button
+                      onClick={() => inviteAgent('user')}
+                      disabled={isAgentParticipating}
+                      className="bg-white/20 hover:bg-white/30 disabled:bg-white/10 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                      {isAgentParticipating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          思考中...
+                        </>
+                      ) : (
+                        <>
+                          <Users size={16} />
+                          邀请我的 Agent
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Users size={16} />
+                      登录后邀请 Agent
+                    </Link>
+                  )}
+                </div>
+              </div>
 
             {/* 欢迎横幅 */}
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 mb-6 text-white shadow-lg relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-              <div className="relative flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
-                  <Zap size={24} />
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
+                    <Zap size={24} />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-lg flex items-center gap-2">
+                      正在进行中
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    </h2>
+                    <p className="text-indigo-100 text-sm">
+                      {onlineCount} 位 Agent 在线讨论中 · 热度 {currentHeat.toFixed(2)}万
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="font-bold text-lg flex items-center gap-2">
-                    正在进行中
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  </h2>
-                  <p className="text-indigo-100 text-sm">
-                    {onlineCount} 位 Agent 在线讨论中 · 热度 {currentHeat.toFixed(2)}万
-                  </p>
-                </div>
+                {/* 邀请 Agent 按钮 */}
+                {user ? (
+                  <button
+                    onClick={() => inviteAgent('user')}
+                    disabled={isAgentParticipating}
+                    className="bg-white/20 hover:bg-white/30 disabled:bg-white/10 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    {isAgentParticipating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        思考中...
+                      </>
+                    ) : (
+                      <>
+                        <Users size={16} />
+                        邀请我的 Agent
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    <Users size={16} />
+                    登录后邀请 Agent
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -1575,6 +2084,37 @@ export default function RoundTablePage() {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Agent 邀请区域 - 固定在底部 */}
+            <div className="sticky bottom-20 z-20 mb-4 bg-white/80 backdrop-blur-sm p-2 -mx-2 rounded-xl">
+              {user ? (
+                <button
+                  onClick={() => inviteAgent('user')}
+                  disabled={isAgentParticipating}
+                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-400 text-white px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                  {isAgentParticipating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Agent 正在思考中...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={18} />
+                      邀请我的 Agent 参与讨论
+                    </>
+                  )}
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-gray-200"
+                >
+                  <Users size={18} />
+                  登录后邀请 Agent 参与讨论
+                </Link>
+              )}
+            </div>
+
             {/* 输入框 */}
             <div className="sticky bottom-4">
               <InputBox
@@ -1590,13 +2130,162 @@ export default function RoundTablePage() {
         </main>
 
         {/* 右侧边栏 - 参与者 */}
-        <aside className="w-72 hidden xl:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto p-6 border-l border-gray-200">
-          <ParticipantList
-            participants={participants}
-            activeParticipant={activeParticipant}
-            speakingParticipant={speakingParticipant}
-          />
+        <aside className="w-72 hidden xl:block sticky top-16 h-[calc(100vh-4rem)] overflow-hidden p-6 border-l border-gray-200">
+          <div className="h-full overflow-y-auto scrollbar-thin">
+            <ParticipantList
+              participants={participants}
+              activeParticipant={activeParticipant}
+              speakingParticipant={speakingParticipant}
+            />
+          </div>
         </aside>
+      </div>
+
+      {/* Agent 控制中心 */}
+      {user && (
+        <div className="fixed bottom-24 right-6 z-40 flex flex-col items-end gap-3">
+          {/* 设置面板 */}
+          {showAgentPanel && (
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 w-72 mb-2 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Agent 设置</h3>
+                <button
+                  onClick={() => setShowAgentPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* 回复风格 */}
+              <div className="mb-4">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">回复风格</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'friendly', label: '友善亲和', icon: '😊' },
+                    { id: 'professional', label: '专业严谨', icon: '💼' },
+                    { id: 'humorous', label: '幽默风趣', icon: '😄' },
+                    { id: 'concise', label: '简洁凝练', icon: '✨' }
+                  ].map(style => (
+                    <button
+                      key={style.id}
+                      onClick={() => setAgentStyle(style.id as typeof agentStyle)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+                        agentStyle === style.id
+                          ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300'
+                          : 'bg-gray-50 text-gray-600 border-2 border-transparent hover:bg-gray-100'
+                      }`}
+                    >
+                      <span>{style.icon}</span>
+                      <span>{style.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 自动参与 */}
+              <div className="mb-4">
+                <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                  <div className={`w-10 h-6 rounded-full transition-colors relative ${autoParticipate ? 'bg-green-500' : 'bg-gray-300'}`}>
+                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${autoParticipate ? 'left-5' : 'left-1'}`} />
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={autoParticipate}
+                    onChange={(e) => setAutoParticipate(e.target.checked)}
+                    className="hidden"
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-700">自动参与</div>
+                    <div className="text-xs text-gray-500">每5分钟自动参与讨论</div>
+                  </div>
+                </label>
+              </div>
+
+              {/* 额外 Agent */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">邀请其他 Agent</label>
+                <div className="space-y-2">
+                  {extraAgents.map(agent => (
+                    <button
+                      key={agent.id}
+                      onClick={() => {
+                        inviteAgent(agent.id as 'critic' | 'humorist' | 'sage')
+                        setShowAgentPanel(false)
+                      }}
+                      disabled={isAgentParticipating}
+                      className="w-full flex items-center gap-3 p-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                      <img src={agent.avatar} alt={agent.name} className="w-8 h-8 rounded-full" />
+                      <div className="text-left flex-1">
+                        <div className="text-sm font-medium text-gray-800">{agent.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {agent.style === 'professional' ? '批判性思维' :
+                           agent.style === 'humorous' ? '幽默风趣' : '睿智简洁'}
+                        </div>
+                      </div>
+                      <Users size={16} className="text-gray-400" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 设置按钮 */}
+          <button
+            onClick={() => setShowAgentPanel(!showAgentPanel)}
+            className="w-10 h-10 bg-white hover:bg-gray-50 text-gray-600 rounded-full shadow-lg border border-gray-200 transition-all flex items-center justify-center"
+            title="Agent 设置"
+          >
+            <Settings size={20} />
+          </button>
+        </div>
+      )}
+
+      {/* 可拖拽浮动 Agent 按钮 */}
+      <div
+        className={`fixed z-50 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} select-none`}
+        style={{
+          right: floatBtnPos.x === 0 ? '20px' : 'auto',
+          bottom: floatBtnPos.y === 0 ? '100px' : 'auto',
+          transform: floatBtnPos.x !== 0 || floatBtnPos.y !== 0
+            ? `translate(${floatBtnPos.x}px, ${-floatBtnPos.y}px)`
+            : 'none'
+        }}
+        onMouseDown={handleDragStart}
+        onTouchStart={handleDragStart}
+      >
+        {user ? (
+          <button
+            onClick={() => {
+              if (!isDragging) inviteAgent('user')
+            }}
+            disabled={isAgentParticipating}
+            className="w-14 h-14 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center group"
+            title="邀请我的 Agent"
+          >
+            {isAgentParticipating ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Zap size={24} className="group-hover:scale-110 transition-transform" />
+                {/* 拖拽提示 */}
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  拖拽移动
+                </div>
+              </>
+            )}
+          </button>
+        ) : (
+          <Link
+            href="/login"
+            className="w-14 h-14 bg-gray-500 hover:bg-gray-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+            title="登录后邀请 Agent"
+          >
+            <Users size={24} />
+          </Link>
+        )}
       </div>
     </div>
   )
