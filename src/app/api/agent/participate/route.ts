@@ -98,18 +98,20 @@ export async function POST(request: NextRequest) {
       avatarUrl = user?.avatar || `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${userId}`
 
       try {
-        // 构建 API URL - 使用绝对 URL 避免问题
-        const protocol = request.headers.get('x-forwarded-proto') || 'https'
-        const host = request.headers.get('host') || 'secondme-integration.vercel.app'
-        const apiUrl = `${protocol}://${host}/api/agent/chat`
+        // 使用相对路径调用同域 API，避免 header 问题
+        const apiUrl = '/api/agent/chat'
 
         console.log('[Agent Participate] Calling API:', apiUrl)
         console.log('[Agent Participate] User ID:', userId)
         console.log('[Agent Participate] Style:', agentStyle)
         console.log('[Agent Participate] Context length:', contextMessage.length)
 
-        // 调用 Agent Chat API
-        const chatRes = await fetch(apiUrl, {
+        // 调用 Agent Chat API - 使用完整 URL
+        const baseUrl = process.env.NEXTAUTH_URL || 'https://secondme-integration.vercel.app'
+        const fullUrl = `${baseUrl}${apiUrl}`
+        console.log('[Agent Participate] Full URL:', fullUrl)
+
+        const chatRes = await fetch(fullUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -124,11 +126,13 @@ export async function POST(request: NextRequest) {
 
         if (!chatRes.ok) {
           const errorText = await chatRes.text()
-          console.error('[Agent Participate] Chat failed:', chatRes.status, errorText)
+          console.error('[Agent Participate] Chat failed:', chatRes.status, errorText.substring(0, 200))
+          // 如果返回的是 HTML，提取关键信息
+          const isHtml = errorText.trim().startsWith('<')
           return NextResponse.json({
             error: 'Failed to get agent response',
             status: chatRes.status,
-            details: errorText
+            details: isHtml ? 'Chat API returned HTML error page' : errorText
           }, { status: 500 })
         }
 
