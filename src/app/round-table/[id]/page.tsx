@@ -1815,7 +1815,19 @@ export default function RoundTablePage() {
             isNew: true
           }
 
-          setMessages(prev => [...prev, newMessage])
+          setMessages(prev => {
+            // 保留主持人消息 + 最新的非主持人消息，总共不超过 20 条
+            const hostMessages = prev.filter(m => m.role === 'host')
+            const nonHostMessages = prev.filter(m => m.role !== 'host')
+
+            // 如果非主持人消息超过 19 条（保留 1 条给新消息），移除最早的非主持人消息
+            if (nonHostMessages.length >= 19) {
+              nonHostMessages.shift() // 移除最早的非主持人消息
+            }
+
+            // 合并：主持人消息 + 更新后的非主持人消息 + 新消息
+            return [...hostMessages, ...nonHostMessages, newMessage]
+          })
           setCurrentHeat(prev => prev + Math.random() * 0.1)
 
           // 清理状态
@@ -1863,7 +1875,18 @@ export default function RoundTablePage() {
       setReplyTo(null)
     }
 
-    setMessages(prev => [...prev, newMessage])
+    // 添加用户消息，限制总消息数不超过20条（保留主持人消息）
+    setMessages(prev => {
+      const hostMessages = prev.filter(m => m.role === 'host')
+      const nonHostMessages = prev.filter(m => m.role !== 'host')
+
+      // 如果非主持人消息超过19条，移除最早的非主持人消息
+      if (nonHostMessages.length >= 19) {
+        nonHostMessages.shift()
+      }
+
+      return [...hostMessages, ...nonHostMessages, newMessage]
+    })
     setCurrentHeat(prev => prev + 0.05)
 
     // 50% 概率触发 Agent 立即回应
@@ -1899,7 +1922,18 @@ export default function RoundTablePage() {
             isNew: true
           }
 
-          setMessages(prev => [...prev, agentMessage])
+          setMessages(prev => {
+            // 保留主持人消息 + 最新的非主持人消息，总共不超过 20 条
+            const hostMessages = prev.filter(m => m.role === 'host')
+            const nonHostMessages = prev.filter(m => m.role !== 'host')
+
+            // 如果非主持人消息超过 19 条，移除最早的非主持人消息
+            if (nonHostMessages.length >= 19) {
+              nonHostMessages.shift()
+            }
+
+            return [...hostMessages, ...nonHostMessages, agentMessage]
+          })
           setCurrentHeat(prev => prev + Math.random() * 0.1)
 
           // 清理状态
