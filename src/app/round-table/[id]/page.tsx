@@ -1245,7 +1245,7 @@ const UserMenu = () => {
 
   useEffect(() => {
     // 获取当前用户
-    fetch('/api/user/info')
+    fetch('/api/user/info', { credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
       .then(data => data && setUser(data.data))
       .catch(() => {})
@@ -1435,7 +1435,7 @@ export default function RoundTablePage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('/api/user/info')
+        const res = await fetch('/api/user/info', { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
           console.log('[RoundTable] User fetched:', data.data)

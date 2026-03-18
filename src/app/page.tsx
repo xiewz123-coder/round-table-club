@@ -10,7 +10,14 @@ import {
   ChevronRight
 } from 'lucide-react'
 
-// 轮播话题数据 - 使用 picsum 更可靠的图片源
+interface UserInfo {
+  id: string
+  name: string
+  email: string
+  avatar?: string
+}
+
+// 轮播话题数据 - 使用与话题内容相关的主题图片
 const CAROUSEL_TOPICS = [
   {
     id: '1',
@@ -19,7 +26,7 @@ const CAROUSEL_TOPICS = [
     tags: ['哲学', 'AI', '思考'],
     heat: 284.7,
     participants: 19,
-    image: 'https://picsum.photos/seed/ai-consciousness/800/600',
+    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop',
     avatars: [
       'https://api.dicebear.com/7.x/avataaars/svg?seed=1',
       'https://api.dicebear.com/7.x/avataaars/svg?seed=2',
@@ -33,7 +40,7 @@ const CAROUSEL_TOPICS = [
     tags: ['职场', '成长', '人生'],
     heat: 192.4,
     participants: 16,
-    image: 'https://picsum.photos/seed/career-growth/800/600',
+    image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=600&fit=crop',
     avatars: [
       'https://api.dicebear.com/7.x/avataaars/svg?seed=4',
       'https://api.dicebear.com/7.x/avataaars/svg?seed=5',
@@ -47,7 +54,7 @@ const CAROUSEL_TOPICS = [
     tags: ['历史', '想象', '人物'],
     heat: 156.7,
     participants: 21,
-    image: 'https://picsum.photos/seed/historical-dinner/800/600',
+    image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
     avatars: [
       'https://api.dicebear.com/7.x/avataaars/svg?seed=7',
       'https://api.dicebear.com/7.x/avataaars/svg?seed=8',
@@ -61,7 +68,7 @@ const CAROUSEL_TOPICS = [
     tags: ['职场', '生活', '远程'],
     heat: 145.3,
     participants: 28,
-    image: 'https://picsum.photos/seed/remote-work/800/600',
+    image: 'https://images.unsplash.com/photo-1593642632823-8f78536788c6?w=800&h=600&fit=crop',
     avatars: [
       'https://api.dicebear.com/7.x/avataaars/svg?seed=10',
       'https://api.dicebear.com/7.x/avataaars/svg?seed=11',
@@ -75,7 +82,7 @@ const CAROUSEL_TOPICS = [
     tags: ['社交', '心理', '观察'],
     heat: 134.8,
     participants: 35,
-    image: 'https://picsum.photos/seed/social-media/800/600',
+    image: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&h=600&fit=crop',
     avatars: [
       'https://api.dicebear.com/7.x/avataaars/svg?seed=13',
       'https://api.dicebear.com/7.x/avataaars/svg?seed=14',
@@ -95,12 +102,12 @@ const SIDE_TOPICS = [
     participants: 16
   },
   {
-    id: '3',
-    title: '如果你能和一个历史人物共进晚餐，你会选谁？',
-    desc: '跨越时空的对话，你会选择哪位智者，问出什么问题？',
-    tags: ['历史', '想象', '人物'],
-    heat: 156.7,
-    participants: 21
+    id: '8',
+    title: 'AI绘画会取代插画师吗？',
+    desc: '从Midjourney到Stable Diffusion，创意行业正在经历巨大变革。',
+    tags: ['AI', '艺术'],
+    heat: 198.5,
+    participants: 28
   },
   {
     id: '4',
@@ -130,8 +137,59 @@ const FEATURES = [
   }
 ]
 
+// 10种可爱卡通头像URL（使用更可靠的源）
+const DEFAULT_AVATARS = [
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=snoopy&backgroundColor=FFB6C1',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=liukanshan&backgroundColor=87CEEB',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=momo&backgroundColor=98FB98',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=xiaoxin&backgroundColor=F0E68C',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=qiqi&backgroundColor=DDA0DD',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=mao&backgroundColor=F4A460',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=xiaogou&backgroundColor=87CEFA',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=xiaoxiong&backgroundColor=DEB887',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=xiaotu&backgroundColor=FFB7C5',
+  'https://api.dicebear.com/7.x/fun-emoji/svg?seed=xiaoji&backgroundColor=FFFACD'
+]
+
+// 根据用户ID获取固定的随机头像
+function getRandomAvatar(userId: string | undefined): string {
+  // 如果 userId 为空，使用默认索引
+  if (!userId || userId === 'guest') {
+    return DEFAULT_AVATARS[0]
+  }
+  // 使用用户ID的字符编码和来选择一个固定的种子
+  let hash = 0
+  for (let i = 0; i < userId.length; i++) {
+    hash = userId.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % DEFAULT_AVATARS.length
+  return DEFAULT_AVATARS[index]
+}
+
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [user, setUser] = useState<UserInfo | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // 检查登录状态
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/user/info', {
+          credentials: 'include' // 确保发送 cookie
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUser(data.data)
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    checkAuth()
+  }, [])
 
   // 自动轮播
   useEffect(() => {
@@ -159,12 +217,44 @@ export default function Home() {
           <MessageCircle size={24} className="text-amber-500" />
           <span>圆桌俱乐部</span>
         </Link>
-        <Link
-          href="/api/auth/login"
-          className="px-5 py-2 bg-[#1a1a2e] text-white rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          登录参与
-        </Link>
+        {!loading && (
+          <div className="flex items-center">
+            {user ? (
+              <Link
+                href="/profile"
+                className="group flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white rounded-full border border-gray-200 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
+              >
+                <img
+                  src={user.avatar || getRandomAvatar(user.id)}
+                  alt={user.name}
+                  className="w-7 h-7 rounded-full object-cover ring-2 ring-gray-50 group-hover:ring-amber-100 transition-all"
+                  onError={(e) => {
+                    // 图片加载失败时显示首字母
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    const parent = target.parentElement
+                    if (parent) {
+                      const fallback = document.createElement('div')
+                      fallback.className = 'w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold ring-2 ring-gray-50'
+                      fallback.textContent = (user.name || 'U').charAt(0).toUpperCase()
+                      parent.appendChild(fallback)
+                    }
+                  }}
+                />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                  {user.name || '用户'}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href="/api/auth/login"
+                className="px-5 py-2 bg-[#1a1a2e] text-white rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                登录参与
+              </Link>
+            )}
+          </div>
+        )}
       </header>
 
       {/* 标题区 */}
