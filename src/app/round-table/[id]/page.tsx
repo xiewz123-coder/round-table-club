@@ -1360,8 +1360,8 @@ const generateMissedMessages = (topicId: string, lastActiveTime: number, current
   const agentNames = Object.keys(agentProfiles)
   let currentTimePointer = lastActiveTime
 
-  // 每20-40秒生成一条消息
-  while (currentTimePointer < currentTime) {
+  // 每20-40秒生成一条消息，最多生成10条，避免消息过多
+  while (currentTimePointer < currentTime && missedMessages.length < 10) {
     const nextMessageTime = currentTimePointer + randomDelay(25000, 35000)
     if (nextMessageTime > currentTime) break
 
@@ -1700,16 +1700,29 @@ export default function RoundTablePage() {
 
           if (timeDiff > 30000) { // 离开超过30秒
             const missedMessages = generateMissedMessages(topicId, lastActiveTime, now)
-            if (missedMessages.length > 0) {
-              setMessages([...parsedMessages, ...missedMessages])
-            } else {
-              setMessages(parsedMessages)
-            }
+            let allMessages = parsedMessages
+        if (missedMessages.length > 0) {
+          allMessages = [...parsedMessages, ...missedMessages]
+        }
+        // 限制消息数量：保留主持人消息 + 最新的非主持人消息，总共20条
+        const hostMessages = allMessages.filter(m => m.role === 'host')
+        const nonHostMessages = allMessages.filter(m => m.role !== 'host')
+        // 只保留最新的19条非主持人消息（给新消息留1条空间）
+        const trimmedNonHost = nonHostMessages.slice(-19)
+        setMessages([...hostMessages, ...trimmedNonHost])
           } else {
-            setMessages(parsedMessages)
+        // 限制消息数量
+        const hostMessages = parsedMessages.filter(m => m.role === 'host')
+        const nonHostMessages = parsedMessages.filter(m => m.role !== 'host')
+        const trimmedNonHost = nonHostMessages.slice(-19)
+        setMessages([...hostMessages, ...trimmedNonHost])
           }
         } else {
-          setMessages(parsedMessages)
+        // 限制消息数量
+        const hostMessages = parsedMessages.filter(m => m.role === 'host')
+        const nonHostMessages = parsedMessages.filter(m => m.role !== 'host')
+        const trimmedNonHost = nonHostMessages.slice(-19)
+        setMessages([...hostMessages, ...trimmedNonHost])
         }
 
         // 恢复热度
@@ -1785,7 +1798,14 @@ export default function RoundTablePage() {
       try {
         const messagesKey = getStorageKey(topicId, 'messages')
         const heatKey = getStorageKey(topicId, 'heat')
-        localStorage.setItem(messagesKey, JSON.stringify(messages))
+
+        // 限制保存的消息数量：保留主持人消息 + 最新的非主持人消息，总共20条
+        const hostMessages = messages.filter(m => m.role === 'host')
+        const nonHostMessages = messages.filter(m => m.role !== 'host')
+        const trimmedNonHost = nonHostMessages.slice(-19) // 最多19条非主持人消息
+        const trimmedMessages = [...hostMessages, ...trimmedNonHost]
+
+        localStorage.setItem(messagesKey, JSON.stringify(trimmedMessages))
         localStorage.setItem(heatKey, currentHeat.toString())
       } catch {
         // ignore localStorage errors
